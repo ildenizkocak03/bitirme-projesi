@@ -1,4 +1,4 @@
-from fpdf import FPDF
+﻿from fpdf import FPDF
 import pandas as pd
 from datetime import datetime
 from io import BytesIO
@@ -83,8 +83,8 @@ def generate_pdf_report(results_df: pd.DataFrame) -> BytesIO:
         pdf.cell(0, 10, '- Implement customer satisfaction improvement program', 0, 1)
     
     # Convert to BytesIO
-    buffer = BytesIO()
-    pdf.output(buffer)
+    pdf_bytes = pdf.output(dest="S").encode("latin-1")
+    buffer = BytesIO(pdf_bytes)
     buffer.seek(0)
     
     return buffer
