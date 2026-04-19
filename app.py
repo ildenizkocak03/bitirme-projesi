@@ -5,465 +5,850 @@ from src.topic_engine import TopicEngine
 from src.risk_engine import RiskEngine
 from src.reporting import generate_pdf_report
 import plotly.express as px
-import plotly.graph_objects as go
 from io import BytesIO
 
-# Page configuration
 st.set_page_config(
-    page_title="Müşteri Yorum Analizi Platformu",
-    page_icon="📊",
+    page_title="Customer Review AI Analytics",
+    page_icon="🚀",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS for modern look
-st.markdown("""
+CUSTOM_CSS = """
 <style>
-    .main-header {
-        font-size: 3rem;
-        font-weight: 700;
-        color: #1e3a8a;
-        text-align: center;
-        margin-bottom: 1rem;
+    html, body, .stApp, [data-testid="stAppViewContainer"] {
+        background: radial-gradient(circle at top left, rgba(82, 242, 200, 0.18), transparent 35%),
+                    radial-gradient(circle at top right, rgba(255, 79, 163, 0.18), transparent 30%),
+                    linear-gradient(180deg, #06131a 0%, #071821 100%) !important;
+        color: #e6f7ff;
     }
-    .sub-header {
-        font-size: 1.2rem;
-        color: #64748b;
-        text-align: center;
+
+    .stApp {
+        overflow-x: hidden;
+    }
+
+    [data-testid="stSidebar"] > div:first-child {
+        background: rgba(8, 20, 34, 0.95) !important;
+        border-right: 1px solid rgba(255, 255, 255, 0.08);
+        box-shadow: inset -1px 0 0 rgba(255,255,255,0.06);
+    }
+
+    [data-testid="stToolbar"] {
+        background: transparent !important;
+    }
+
+    .css-18e3th9, .css-1d391kg, .css-1lcbmhc, .css-1v3fvcr, .css-1r6slb3 {
+        background: transparent !important;
+    }
+
+    .main .block-container {
+        padding-top: 1.5rem;
+        padding-bottom: 2rem;
+        max-width: 1600px;
+    }
+
+    .hero-panel, .feature-panel, .upload-panel, .results-panel, .analytics-panel, .download-panel {
+        background: rgba(15, 27, 41, 0.80);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 28px;
+        box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
+        backdrop-filter: blur(16px);
+        padding: 2rem 2.5rem;
         margin-bottom: 2rem;
-        max-width: 800px;
-        margin-left: auto;
-        margin-right: auto;
     }
-    .feature-card {
-        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-        border-radius: 12px;
-        padding: 1.5rem;
-        margin: 0.5rem;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        border: 1px solid #e2e8f0;
-        text-align: center;
+
+    .hero-panel {
+        position: relative;
+        overflow: hidden;
+        padding: 3rem 3.5rem;
     }
-    .feature-icon {
-        font-size: 2rem;
-        margin-bottom: 0.5rem;
+
+    .hero-panel::before {
+        content: "";
+        position: absolute;
+        width: 420px;
+        height: 420px;
+        border-radius: 50%;
+        top: -120px;
+        right: -140px;
+        background: radial-gradient(circle, rgba(82,242,200,0.28), transparent 55%);
+        filter: blur(50px);
+        pointer-events: none;
     }
-    .feature-title {
+
+    .hero-panel::after {
+        content: "";
+        position: absolute;
+        width: 360px;
+        height: 360px;
+        border-radius: 50%;
+        bottom: -150px;
+        left: -120px;
+        background: radial-gradient(circle, rgba(255,79,163,0.18), transparent 55%);
+        filter: blur(60px);
+        pointer-events: none;
+    }
+
+    .hero-title {
+        font-size: clamp(3rem, 4.4vw, 4.8rem);
+        font-weight: 900;
+        margin: 0;
+        line-height: 1.02;
+        color: #f4f9ff;
+        letter-spacing: -0.05em;
+        z-index: 1;
+    }
+
+    .hero-subtitle {
+        font-size: 1.15rem;
+        color: rgba(230, 247, 255, 0.84);
+        max-width: 860px;
+        margin: 1.5rem 0 2rem;
+        line-height: 1.75;
+        z-index: 1;
+    }
+
+    .hero-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        z-index: 1;
+    }
+
+    .hero-cta {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #52f2c8, #ff4fa3);
+        color: #06131a;
+        border: none;
+        border-radius: 999px;
+        padding: 1rem 2rem;
+        font-weight: 700;
+        font-size: 1rem;
+        transition: transform 0.25s ease, box-shadow 0.25s ease;
+        text-decoration: none;
+    }
+
+    .hero-cta:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 24px 40px rgba(82, 242, 200, 0.26);
+    }
+
+    .hero-secondary {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        color: #d8f6ff;
+        border-radius: 999px;
+        padding: 1rem 2rem;
         font-weight: 600;
-        color: #1e3a8a;
-        margin-bottom: 0.5rem;
+        transition: background 0.25s ease;
     }
-    .upload-section {
-        background: white;
-        border-radius: 16px;
-        padding: 2rem;
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-        border: 2px dashed #cbd5e1;
-        text-align: center;
-        margin: 2rem 0;
+
+    .hero-secondary:hover {
+        background: rgba(255, 255, 255, 0.12);
     }
-    .kpi-card {
-        background: white;
-        border-radius: 12px;
-        padding: 1.5rem;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        border: 1px solid #e2e8f0;
-        text-align: center;
-        margin: 0.5rem;
+
+    h2, h3, h4, h5, h6, p {
+        color: #e6f7ff;
     }
-    .chart-card {
-        background: white;
-        border-radius: 12px;
-        padding: 1.5rem;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        border: 1px solid #e2e8f0;
-        margin: 0.5rem;
-    }
-    .download-card {
-        background: white;
-        border-radius: 12px;
-        padding: 1.5rem;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        border: 1px solid #e2e8f0;
-        margin: 0.5rem;
-    }
-    .sentiment-badge {
-        padding: 0.25rem 0.75rem;
-        border-radius: 9999px;
-        font-size: 0.875rem;
-        font-weight: 500;
-    }
-    .sentiment-positive { background-color: #dcfce7; color: #166534; }
-    .sentiment-neutral { background-color: #fef3c7; color: #92400e; }
-    .sentiment-negative { background-color: #fee2e2; color: #991b1b; }
-    .risk-badge {
-        padding: 0.25rem 0.75rem;
-        border-radius: 9999px;
-        font-size: 0.875rem;
-        font-weight: 500;
-    }
-    .risk-low { background-color: #f0fdf4; color: #166534; }
-    .risk-medium { background-color: #fef3c7; color: #92400e; }
-    .risk-high { background-color: #fed7d7; color: #c53030; }
-    .risk-critical { background-color: #feb2b2; color: #9b2c2c; }
+
     .section-title {
-        font-size: 1.5rem;
-        font-weight: 600;
-        color: #1e3a8a;
+        font-size: 2rem;
+        font-weight: 900;
+        margin-bottom: 0.5rem;
+        color: #ffffff;
+    }
+
+    .section-description {
+        color: rgba(230, 247, 255, 0.72);
+        margin-bottom: 1.8rem;
+        line-height: 1.8;
+        max-width: 920px;
+    }
+
+    .feature-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 1.5rem;
+    }
+
+    .feature-card {
+        background: rgba(15, 27, 41, 0.72);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 24px;
+        padding: 1.8rem;
+        box-shadow: 0 18px 55px rgba(0, 0, 0, 0.25);
+        transition: transform 0.25s ease, border-color 0.25s ease;
+    }
+
+    .feature-card:hover {
+        transform: translateY(-5px);
+        border-color: rgba(82, 242, 200, 0.28);
+    }
+
+    .feature-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 3.2rem;
+        height: 3.2rem;
+        border-radius: 16px;
+        background: rgba(82, 242, 200, 0.12);
+        color: #52f2c8;
+        font-size: 1.6rem;
         margin-bottom: 1rem;
     }
-    .stButton>button {
-        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-        color: white;
-        border: none;
-        border-radius: 8px;
-        padding: 0.75rem 1.5rem;
-        font-weight: 500;
-        width: 100%;
+
+    .feature-title {
+        margin: 0 0 0.75rem;
+        font-size: 1.15rem;
+        font-weight: 800;
     }
-    .stButton>button:hover {
-        background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+
+    .feature-description {
+        color: rgba(230, 247, 255, 0.72);
+        line-height: 1.7;
+        margin: 0;
     }
+
+    .upload-panel {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+
+    .upload-title {
+        font-size: 1.8rem;
+        font-weight: 800;
+        margin-bottom: 0.5rem;
+    }
+
+    .upload-description {
+        color: rgba(230, 247, 255, 0.72);
+        margin-bottom: 1.5rem;
+        max-width: 760px;
+    }
+
+    .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 1.25rem;
+    }
+
+    .kpi-card {
+        background: rgba(11, 34, 48, 0.88);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 24px;
+        padding: 1.7rem;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.24);
+        transition: transform 0.25s ease;
+    }
+
+    .kpi-card:hover {
+        transform: translateY(-4px);
+    }
+
+    .kpi-value {
+        font-size: 2.6rem;
+        font-weight: 800;
+        color: #ffffff;
+        margin-bottom: 0.4rem;
+    }
+
+    .kpi-label {
+        color: rgba(230, 247, 255, 0.70);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        font-size: 0.85rem;
+    }
+
+    .chart-card {
+        background: rgba(15, 27, 41, 0.90);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 24px;
+        padding: 1.5rem;
+        box-shadow: 0 20px 45px rgba(0, 0, 0, 0.24);
+        margin-bottom: 1.5rem;
+    }
+
+    .table-card {
+        background: rgba(15, 27, 41, 0.90);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 24px;
+        padding: 1.5rem;
+        box-shadow: 0 20px 45px rgba(0, 0, 0, 0.24);
+        margin-bottom: 1.5rem;
+        overflow-x: auto;
+    }
+
+    .results-title {
+        font-size: 2rem;
+        font-weight: 900;
+        margin-bottom: 0.35rem;
+    }
+
+    .results-subtitle {
+        color: rgba(230, 247, 255, 0.72);
+        margin-bottom: 1.6rem;
+        line-height: 1.75;
+    }
+
+    .download-panel {
+        padding: 2rem;
+        justify-content: center;
+        text-align: center;
+    }
+
+    .download-title {
+        font-size: 1.8rem;
+        font-weight: 800;
+        margin-bottom: 0.6rem;
+    }
+
+    .download-description {
+        color: rgba(230, 247, 255, 0.72);
+        margin-bottom: 1.4rem;
+    }
+
+    .download-buttons {
+        display: flex;
+        justify-content: center;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .stButton>button, .stDownloadButton>button {
+        border-radius: 999px !important;
+        padding: 0.85rem 1.9rem !important;
+        font-weight: 700 !important;
+        color: #ffffff !important;
+        border: none !important;
+        background: linear-gradient(135deg, #52f2c8, #ff4fa3) !important;
+        box-shadow: 0 18px 40px rgba(82, 242, 200, 0.18) !important;
+        transition: transform 0.25s ease, box-shadow 0.25s ease !important;
+    }
+
+    .stButton>button:hover, .stDownloadButton>button:hover {
+        transform: translateY(-2px) !important;
+        box-shadow: 0 22px 44px rgba(82, 242, 200, 0.28) !important;
+    }
+
     .stFileUploader>div>div>div>button {
-        background: #f1f5f9;
-        color: #475569;
-        border: 1px solid #cbd5e1;
-        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.06) !important;
+        color: #e6f7ff !important;
+        border: 1px solid rgba(255, 255, 255, 0.14) !important;
+        border-radius: 18px !important;
+        padding: 1rem 1.2rem !important;
+    }
+
+    .stFileUploader>div>div>div>button:hover {
+        background: rgba(82, 242, 200, 0.14) !important;
+    }
+
+    .stTextArea>div>div>textarea,
+    .stTextInput>div>div>input,
+    .stSelectbox>div>div {
+        background: rgba(255, 255, 255, 0.95) !important;
+        color: #06131a !important;
+        border: 1px solid rgba(82, 242, 200, 0.4) !important;
+        border-radius: 16px !important;
+    }
+
+    .stTextArea>div>div>textarea::placeholder,
+    .stTextInput>div>div>input::placeholder {
+        color: rgba(6, 19, 26, 0.4) !important;
+    }
+
+    .stSelectbox>div>div>div>div {
+        background: rgba(255, 255, 255, 0.05) !important;
+    }
+
+    .stMultiSelect>div>div>div>div {
+        background: rgba(255, 255, 255, 0.05) !important;
+    }
+
+    button[role="tab"] {
+        background: rgba(255, 255, 255, 0.04) !important;
+        color: rgba(230, 247, 255, 0.80) !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        border-radius: 999px !important;
+        padding: 0.75rem 1.2rem !important;
+        margin-right: 0.35rem;
+        transition: all 0.25s ease;
+    }
+
+    button[role="tab"][aria-selected="true"] {
+        background: linear-gradient(135deg, rgba(82,242,200,0.24), rgba(255,79,163,0.22));
+        color: #ffffff !important;
+        border-color: rgba(82, 242, 200, 0.35) !important;
+        box-shadow: 0 15px 35px rgba(82, 242, 200, 0.12) !important;
+    }
+
+    .stProgress > div > div {
+        background: rgba(82, 242, 200, 0.18) !important;
+    }
+
+    .stMarkdown p, .stMarkdown span, .stMarkdown div {
+        color: rgba(230, 247, 255, 0.90) !important;
+    }
+
+    table {
+        background: rgba(15, 27, 41, 0.95) !important;
+        color: #e6f7ff !important;
+        border-radius: 18px;
+    }
+
+    thead th {
+        color: #ffffff !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.10) !important;
+        background: rgba(255, 255, 255, 0.04) !important;
+    }
+
+    tbody tr:nth-child(odd) {
+        background: rgba(255, 255, 255, 0.02) !important;
+    }
+
+    tbody tr:hover {
+        background: rgba(82, 242, 200, 0.08) !important;
+    }
+
+    td, th {
+        border: none !important;
+        padding: 0.85rem 0.95rem !important;
+    }
+
+    .stAlert {
+        border-radius: 18px !important;
+        border: 1px solid rgba(255, 255, 255, 0.12) !important;
+        background: rgba(255, 255, 255, 0.05) !important;
+    }
+
+    @media (max-width: 1024px) {
+        .feature-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .kpi-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @media (max-width: 760px) {
+        .feature-grid, .kpi-grid {
+            grid-template-columns: 1fr;
+        }
+        .hero-panel {
+            padding: 2rem 1.5rem;
+        }
+        .hero-title {
+            font-size: 2.8rem;
+        }
     }
 </style>
-""", unsafe_allow_html=True)
+"""
 
-# Initialize analyzers
+st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
+
 sentiment_analyzer = SentimentAnalyzer()
 topic_engine = TopicEngine()
 risk_engine = RiskEngine()
 
+
+def style_plotly(fig):
+    fig.update_layout(
+        plot_bgcolor='rgba(10, 19, 26, 0.8)',
+        paper_bgcolor='rgba(10, 19, 26, 0)',
+        font_color='#e6f7ff',
+        legend=dict(
+            bgcolor='rgba(10, 19, 26, 0.75)',
+            bordercolor='rgba(255,255,255,0.1)',
+            borderwidth=1
+        ),
+        margin=dict(l=20, r=20, t=50, b=20),
+    )
+    if fig.data:
+        fig.update_traces(marker_line_color='rgba(255,255,255,0.08)', marker_line_width=1)
+    return fig
+
+
 def create_sentiment_badge(sentiment):
     if sentiment == 'positive':
-        return f'<span class="sentiment-badge sentiment-positive">Olumlu</span>'
+        return '<span style="display:inline-block;padding:0.35rem 0.85rem;border-radius:999px;background:#052f17;color:#a7ffd5;font-weight:700;font-size:0.85rem;">Olumlu</span>'
     elif sentiment == 'negative':
-        return f'<span class="sentiment-badge sentiment-negative">Olumsuz</span>'
+        return '<span style="display:inline-block;padding:0.35rem 0.85rem;border-radius:999px;background:#45121a;color:#ffd8e8;font-weight:700;font-size:0.85rem;">Olumsuz</span>'
     else:
-        return f'<span class="sentiment-badge sentiment-neutral">Nötr</span>'
+        return '<span style="display:inline-block;padding:0.35rem 0.85rem;border-radius:999px;background:#3a3f4d;color:#fdf6e3;font-weight:700;font-size:0.85rem;">Nötr</span>'
+
 
 def create_risk_badge(risk_level):
     if risk_level == 'low':
-        return f'<span class="risk-badge risk-low">Düşük Risk</span>'
+        return '<span style="display:inline-block;padding:0.35rem 0.85rem;border-radius:999px;background:#183f1f;color:#a7ffd5;font-weight:700;font-size:0.85rem;">Düşük Risk</span>'
     elif risk_level == 'medium':
-        return f'<span class="risk-badge risk-medium">Orta Risk</span>'
+        return '<span style="display:inline-block;padding:0.35rem 0.85rem;border-radius:999px;background:#5d4b1a;color:#fff3a0;font-weight:700;font-size:0.85rem;">Orta Risk</span>'
     elif risk_level == 'high':
-        return f'<span class="risk-badge risk-high">Yüksek Risk</span>'
+        return '<span style="display:inline-block;padding:0.35rem 0.85rem;border-radius:999px;background:#5a1620;color:#ffb3c7;font-weight:700;font-size:0.85rem;">Yüksek Risk</span>'
     else:
-        return f'<span class="risk-badge risk-critical">Kritik Risk</span>'
+        return '<span style="display:inline-block;padding:0.35rem 0.85rem;border-radius:999px;background:#3f1226;color:#ffb3c7;font-weight:700;font-size:0.85rem;">Kritik Risk</span>'
+
+
+def render_data_table(df):
+    table_html = df.to_html(escape=False, index=False)
+    styled_table = f"""
+    <div class='table-card'>
+        {table_html}
+    </div>
+    """
+    return styled_table
+
 
 def main():
-    # Sidebar
     with st.sidebar:
-        st.title("📊 Hakkında")
-        st.markdown("""
-        **Müşteri Yorum Analizi Platformu**
-        
-        Gelişmiş AI kullanarak müşteri geri bildirimlerini analiz eder:
-        - Duygu tespiti (olumlu/nötr/olumsuz)
-        - Şikayet konularını belirleme
-        - Risk seviyelerini değerlendirme
-        - İşletme için uygulanabilir içgörüler üretme
-        
-        **Kullanım:**
-        1. Müşteri yorumlarını içeren CSV dosyasını yükleyin
-        2. Metin sütununu seçin
-        3. "Analizi Başlat" butonuna tıklayın
-        4. Sonuçları görüntüleyin ve raporları indirin
-        """)
-        
+        st.markdown(
+            """
+            <div style='padding: 1rem 1rem 0.5rem; margin-bottom: 1rem; background: rgba(255,255,255,0.03); border-radius: 20px; border: 1px solid rgba(255,255,255,0.08);'>
+                <h2 style='margin:0; color:#f8fcff;'>AI Müşteri Yorum Analizi</h2>
+                <p style='margin:0.75rem 0 0; color:rgba(230,247,255,0.72); font-size:0.95rem;'>Müşteri yorumlarınızı premium dark dashboard ile analiz edin.</p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        st.markdown("### Hakkında")
+        st.markdown(
+            """
+            Bu uygulama, müşteri yorumlarınızı yapay zeka ile analiz eder:
+            - **Duygu Analizi**: Pozitif, negatif veya nötr duygu tespiti
+            - **Konu Tespiti**: Şikayet konularını belirler
+            - **Risk Skoru**: Yüksek riskli geri bildirimleri öne çıkarır
+            - **Görsel Raporlar**: Koyu temalı dashboard görünümü
+            """
+        )
+        st.markdown("### Ayarlar")
+        if st.checkbox("Gelişmiş Mod", key='advanced_mode'):
+            st.markdown("**Gelişmiş ayarlar aktif edildi**")
+            confidence_threshold = st.slider("Güven Eşiği", 0.0, 1.0, 0.7, 0.1, key='confidence_threshold')
+            max_reviews = st.slider("Maksimum Yorum Sayısı", 100, 10000, 1000, 100, key='max_reviews')
+        else:
+            confidence_threshold = 0.7
+            max_reviews = 1000
         st.markdown("---")
-        st.markdown("**Teknolojiler:** Streamlit, Transformers, Plotly")
-    
-    # Hero Section
-    st.markdown('<h1 class="main-header">Müşteri Yorum & Şikayet Analiz Platformu</h1>', unsafe_allow_html=True)
-    st.markdown('<p class="sub-header">Müşteri geri bildirimlerini analiz edin, riskleri tespit edin, şikayet konularını belirleyin ve yüklenen CSV dosyalarından işletme için uygulanabilir içgörüler üretin.</p>', unsafe_allow_html=True)
-    
-    # Feature Cards
-    col1, col2, col3, col4 = st.columns(4)
-    with col1:
-        st.markdown("""
-        <div class="feature-card">
-            <div class="feature-icon">😊</div>
-            <div class="feature-title">Duygu Analizi</div>
-            <p>Gelişmiş NLP modelleri kullanarak yorumları olumlu, nötr veya olumsuz olarak sınıflandırın.</p>
+        st.markdown("**Version:** 2.0.0")
+
+    st.markdown(
+        """
+        <div class='hero-panel'>
+            <h1 class='hero-title'>Müşteri Yorum AI Analizi</h1>
+            <p class='hero-subtitle'>Müşteri geri bildirimlerini gelişmiş AI destekli duygu analizi, konu tespiti ve risk değerlendirmesi ile uygulamaya dönüştürün.</p>
+            <div class='hero-actions'>
+                <a class='hero-cta' href='#upload'>CSV Yükle</a>
+                <span class='hero-secondary'>Dark AI Dashboard</span>
+            </div>
         </div>
-        """, unsafe_allow_html=True)
-    
-    with col2:
-        st.markdown("""
-        <div class="feature-card">
-            <div class="feature-icon">🏷️</div>
-            <div class="feature-title">Konu Tespiti</div>
-            <p>Kargo, kalite, hizmet ve fiyatlandırma gibi ana şikayet kategorilerini belirleyin.</p>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with col3:
-        st.markdown("""
-        <div class="feature-card">
-            <div class="feature-icon">⚠️</div>
-            <div class="feature-title">Risk Puanlama</div>
-            <p>İçerik analizi ve duyguya göre düşükten kritik seviyeye kadar riskleri değerlendirin.</p>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with col4:
-        st.markdown("""
-        <div class="feature-card">
-            <div class="feature-icon">📈</div>
-            <div class="feature-title">Uygulanabilir İçgörüler</div>
-            <p>Öneriler ve trend analizi ile işletme zekası raporları üretin.</p>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    # Upload Section
-    st.markdown("---")
-    st.markdown('<h2 class="section-title">📁 Verilerinizi Yükleyin</h2>', unsafe_allow_html=True)
-    
-    st.markdown("""
-    <div class="upload-section">
-        <h3>CSV Dosyası Yükleyin</h3>
-        <p>AI destekli analizi başlatmak için müşteri yorumlarını veya şikayetlerini içeren bir veri seti yükleyin.</p>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    uploaded_file = st.file_uploader("", type=['csv'], label_visibility="collapsed")
-    
-    if uploaded_file is not None:
-        try:
-            # Try reading with different encodings
+        """,
+        unsafe_allow_html=True,
+    )
+
+    tab1, tab2, tab3 = st.tabs(["📋 Hakkında", "📁 CSV Yükleme", "✏️ Metin Analizi"])
+
+    with tab1:
+        st.markdown(
+            """
+            <div class='feature-panel'>
+                <h2 class='section-title'>Premium Analiz Deneyimi</h2>
+                <p class='section-description'>Koyu tema, neon vurgu ve camefektli kartlarla modern bir AI dashboard görünümü elde edin.</p>
+                <div class='feature-grid'>
+                    <div class='feature-card'>
+                        <div class='feature-icon'>😊</div>
+                        <h3 class='feature-title'>Duygu Analizi</h3>
+                        <p class='feature-description'>Müşteri yorumlarını olumlu, nötr veya olumsuz olarak hızla sınıflandırın.</p>
+                    </div>
+                    <div class='feature-card'>
+                        <div class='feature-icon'>🏷️</div>
+                        <h3 class='feature-title'>Konu Tespiti</h3>
+                        <p class='feature-description'>Yorumlardaki ana konuları ve şikayet kalıplarını keşfedin.</p>
+                    </div>
+                    <div class='feature-card'>
+                        <div class='feature-icon'>⚠️</div>
+                        <h3 class='feature-title'>Risk Değerlendirmesi</h3>
+                        <p class='feature-description'>Hızlı risk puanlaması ile kritik yorumları önceliklendirin.</p>
+                    </div>
+                    <div class='feature-card'>
+                        <div class='feature-icon'>📈</div>
+                        <h3 class='feature-title'>Premium Raporlama</h3>
+                        <p class='feature-description'>Analiz sonuçlarını şık dark dashboard görünümünde inceleyin.</p>
+                    </div>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    with tab2:
+        st.markdown(
+            """
+            <div class='upload-panel' id='upload'>
+                <h3 class='upload-title'>Upload Your Customer Reviews</h3>
+                <p class='upload-description'>Start your AI-powered analysis by uploading a CSV file containing customer feedback and reviews.</p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        uploaded_file = st.file_uploader("", type=['csv'], label_visibility="collapsed", key='file_uploader')
+
+        if uploaded_file is not None:
             try:
-                df = pd.read_csv(uploaded_file, encoding='utf-8', dtype=str)
-            except:
-                df = pd.read_csv(uploaded_file, encoding='latin-1', dtype=str)
-            
-            if df.empty:
-                st.error("❌ CSV dosyası boş. Lütfen veriler içeren bir dosya yükleyin.")
-            else:
-                st.success(f"✅ Dosya başarıyla yüklendi! ({len(df)} satır, {len(df.columns)} sütun)")
-                st.info(f"📋 Sütunlar: {', '.join(df.columns.tolist())}")
-                
-                # Column selection
-                st.markdown("---")
-                st.markdown('<h3 class="section-title">⚙️ Analizi Yapılandırın</h3>', unsafe_allow_html=True)
-                
-                text_columns = list(df.columns)
-                
-                if not text_columns:
-                    st.error("❌ Sütun bulunamadı. CSV dosyanız okunamadı.")
+                try:
+                    df = pd.read_csv(uploaded_file, encoding='utf-8', dtype=str)
+                except Exception:
+                    df = pd.read_csv(uploaded_file, encoding='latin-1', dtype=str)
+
+                if df.empty:
+                    st.error("❌ Dosya boş. Lütfen veri içeren bir dosya yükleyin.")
                 else:
-                    selected_text_col = st.selectbox("Yorum metni sütununu seçin", text_columns)
+                    st.success(f"✅ Dosya başarıyla yüklendi! ({len(df)} satır, {len(df.columns)} sütun)")
+                    st.info(f"📋 Sütunlar: {', '.join(df.columns.tolist())}")
+                    st.session_state['uploaded_df'] = df
                     
-                    date_columns = [col for col in df.columns if col.lower().find('date') != -1 or col.lower().find('tarih') != -1]
-                    if not date_columns:
-                        date_columns = list(df.columns)
-                    
-                    selected_date_col = st.selectbox("Tarih sütununu seçin (opsiyonel)", ['Yok'] + date_columns)
-                    if selected_date_col == 'Yok':
-                        selected_date_col = None
-                    
-                    if st.button("🚀 Analizi Başlat", type="primary"):
-                        with st.spinner("🔄 Yorumlar analiz ediliyor... Bu birkaç dakika sürebilir."):
+                    # Analyze the CSV automatically
+                    if 'review_text' in df.columns:
+                        with st.spinner("🔄 CSV analiz ediliyor... Bu birkaç dakika sürebilir."):
                             try:
-                                # Perform analysis
                                 results = []
                                 for idx, row in df.iterrows():
-                                    text = str(row[selected_text_col]).strip()
-                                    if not text or text.lower() == 'nan':
-                                        continue
-                                    
-                                    sentiment = sentiment_analyzer.analyze(text)
-                                    topic = topic_engine.classify_topic(text)
-                                    risk = risk_engine.assess_risk(text, sentiment)
-                                    
-                                    result = {
-                                        'review_id': idx + 1,
-                                        'review_text': text,
-                                        'sentiment': sentiment['label'],
-                                        'sentiment_score': sentiment['score'],
-                                        'topic': topic['topic'],
-                                        'topic_confidence': topic['confidence'],
-                                        'risk_level': risk['level'],
-                                        'risk_score': risk['score'],
-                                        'explanation': risk['explanation']
-                                    }
-                                    if selected_date_col:
-                                        try:
-                                            result['date'] = row[selected_date_col]
-                                        except:
-                                            pass
-                                    results.append(result)
+                                    review_text = str(row['review_text']).strip()
+                                    if review_text:
+                                        sentiment = sentiment_analyzer.analyze(review_text)
+                                        topic = topic_engine.classify_topic(review_text)
+                                        risk = risk_engine.assess_risk(review_text, sentiment)
+                                        
+                                        results.append({
+                                            'review_id': row.get('review_id', idx+1),
+                                            'date': row.get('date', ''),
+                                            'platform': row.get('platform', ''),
+                                            'rating': row.get('rating', ''),
+                                            'review_text': review_text,
+                                            'sentiment': sentiment['label'],
+                                            'sentiment_score': sentiment['score'],
+                                            'topic': topic['topic'],
+                                            'topic_confidence': topic['confidence'],
+                                            'risk_level': risk['level'],
+                                            'risk_score': risk['score']
+                                        })
                                 
-                                if results:
-                                    results_df = pd.DataFrame(results)
-                                    
-                                    # Store in session state
-                                    st.session_state['results_df'] = results_df
-                                    st.session_state['original_df'] = df
-                                    st.success(f"✅ Analiz tamamlandı! {len(results_df)} yorum analiz edildi.")
-                                else:
-                                    st.warning("⚠️ Analiz edilecek geçerli yorum bulunamadı.")
+                                results_df = pd.DataFrame(results)
+                                st.session_state['results_df'] = results_df
+                                st.success(f"✅ CSV analizi tamamlandı! {len(results_df)} yorum analiz edildi.")
                             except Exception as analysis_error:
-                                st.error(f"❌ Analiz sırasında hata: {str(analysis_error)}")
-                    
-        except Exception as e:
-            error_msg = str(e) if str(e) else "Dosya işlenirken bilinmeyen bir hata oluştu"
-            st.error(f"❌ Dosya işlenirken hata: {error_msg}\n\nÖnerileri:\n- CSV dosyasının UTF-8 encoding ile kaydedildiğini kontrol edin\n- Dosyada satır başında/sonunda boşluk olup olmadığını kontrol edin")
-    
-    # Display results if available
+                                st.error(f"❌ Analiz sırasında hata: {analysis_error}")
+                    else:
+                        st.error("❌ CSV dosyasında 'review_text' sütunu bulunamadı. Lütfen yorumların bulunduğu sütunu 'review_text' olarak adlandırın.")
+            except Exception as exc:
+                st.error(f"❌ Dosya okunurken hata oluştu: {exc}")
+
+    with tab3:
+        st.markdown('<h2 class="section-title">✏️ Metin Analizi</h2>', unsafe_allow_html=True)
+        st.markdown(
+            """
+            <div class='upload-panel'>
+                <h3 class='upload-title'>Doğrudan Metin Analizi</h3>
+                <p class='upload-description'>CSV dosyası yüklemek yerine, doğrudan metin girerek analiz yapabilirsiniz. Her satırı ayrı bir yorum olarak değerlendirecektir.</p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        text_input = st.text_area(
+            "Analiz edilecek metinleri girin (her satır bir yorum):",
+            value="""Ürün çok kaliteli, çok memnun kaldım.
+Kargo çok yavaş geldi, beklemekten bıktım.
+Fiyat performans oranı mükemmel.
+Müşteri hizmetleri hiç yardımcı olmadı.""",
+            height=200,
+            help="Her satırı ayrı bir müşteri yorumu olarak analiz edecektir.",
+            key='text_analysis_input',
+        )
+
+        if st.button("🚀 Metni Analiz Et", key='text_analyze'):
+            if text_input.strip():
+                with st.spinner("🔄 Metin analiz ediliyor... Bu birkaç dakika sürebilir."):
+                    try:
+                        reviews = [line.strip() for line in text_input.split('\n') if line.strip()]
+                        if not reviews:
+                            st.error("❌ Geçerli yorum bulunamadı. Lütfen metin girin.")
+                        else:
+                            results = []
+                            for idx, review_text in enumerate(reviews, start=1):
+                                sentiment = sentiment_analyzer.analyze(review_text)
+                                topic = topic_engine.classify_topic(review_text)
+                                risk = risk_engine.assess_risk(review_text, sentiment)
+                                results.append({
+                                    'review_id': idx,
+                                    'review_text': review_text,
+                                    'sentiment': sentiment['label'],
+                                    'sentiment_score': sentiment['score'],
+                                    'topic': topic['topic'],
+                                    'topic_confidence': topic['confidence'],
+                                    'risk_level': risk['level'],
+                                    'risk_score': risk['score'],
+                                    'explanation': risk['explanation'],
+                                })
+                            st.session_state['results_df'] = pd.DataFrame(results)
+                            st.success(f"✅ Metin analizi tamamlandı! {len(results)} yorum analiz edildi.")
+                    except Exception as analysis_error:
+                        st.error(f"❌ Analiz sırasında hata: {analysis_error}")
+            else:
+                st.warning("⚠️ Lütfen analiz edilecek metin girin.")
+
+    if 'uploaded_df' in st.session_state and 'results_df' not in st.session_state:
+        st.markdown("---")
+        st.markdown("### CSV yüklendi, analiz için hazır.")
+
     if 'results_df' in st.session_state:
         results_df = st.session_state['results_df']
-        
         st.markdown("---")
-        st.markdown('<h2 class="section-title">📊 Analiz Sonuçları</h2>', unsafe_allow_html=True)
-        
-        # KPI Cards
+        st.markdown(
+            """
+            <div class='results-panel'>
+                <h2 class='results-title'>Analiz Sonuçları</h2>
+                <p class='results-subtitle'>Müşteri yorumlarınızdan derinlemesine içgörüler çıkarın.</p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        st.markdown("### Temel Metrikler")
         col1, col2, col3, col4 = st.columns(4)
         with col1:
-            st.markdown(f"""
-            <div class="kpi-card">
-                <h3>{len(results_df)}</h3>
-                <p>Toplam Yorum</p>
-            </div>
-            """, unsafe_allow_html=True)
-        
+            st.markdown(
+                f"""
+                <div class='kpi-card'>
+                    <div class='kpi-value'>{len(results_df)}</div>
+                    <div class='kpi-label'>Toplam Yorum</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
         with col2:
             neg_ratio = (results_df['sentiment'] == 'negative').mean() * 100
-            st.markdown(f"""
-            <div class="kpi-card">
-                <h3>{neg_ratio:.1f}%</h3>
-                <p>Olumsuz Oran</p>
-            </div>
-            """, unsafe_allow_html=True)
-        
+            neg_ratio_formatted = f"{neg_ratio:.1f}%"
+            st.markdown(
+                f"""
+                <div class='kpi-card'>
+                    <div class='kpi-value'>{neg_ratio_formatted}</div>
+                    <div class='kpi-label'>Olumsuz Oran</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
         with col3:
             high_risk_count = len(results_df[results_df['risk_level'].isin(['high', 'critical'])])
-            st.markdown(f"""
-            <div class="kpi-card">
-                <h3>{high_risk_count}</h3>
-                <p>Yüksek Riskli Yorumlar</p>
-            </div>
-            """, unsafe_allow_html=True)
-        
+            st.markdown(
+                f"""
+                <div class='kpi-card'>
+                    <div class='kpi-value'>{high_risk_count}</div>
+                    <div class='kpi-label'>Yüksek Riskli Yorumlar</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
         with col4:
             dominant_topic = results_df['topic'].mode().iloc[0] if not results_df.empty else "Yok"
-            st.markdown(f"""
-            <div class="kpi-card">
-                <h3>{dominant_topic.replace('_', ' ').title()}</h3>
-                <p>Baskın Konu</p>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        # Charts
-        st.markdown('<h3 class="section-title">📈 Görselleştirmeler</h3>', unsafe_allow_html=True)
-        
+            topic_display = dominant_topic.replace('_', ' ').title()
+            st.markdown(
+                f"""
+                <div class='kpi-card'>
+                    <div class='kpi-value'>{topic_display}</div>
+                    <div class='kpi-label'>Baskın Konu</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+        st.markdown("### Görsel Analizler")
         col1, col2 = st.columns(2)
         with col1:
-            st.markdown('<div class="chart-card">', unsafe_allow_html=True)
-            sentiment_counts = results_df['sentiment'].value_counts()
-            fig_sentiment = px.pie(sentiment_counts, values=sentiment_counts.values, names=sentiment_counts.index, title="Duygu Dağılımı")
+            fig_sentiment = px.pie(
+                results_df['sentiment'].value_counts(),
+                values=results_df['sentiment'].value_counts().values,
+                names=results_df['sentiment'].value_counts().index,
+                color_discrete_sequence=['#52f2c8', '#ff4fa3', '#7ee7ff'],
+            )
+            fig_sentiment.update_traces(textposition='inside', textinfo='percent+label', marker=dict(line=dict(color='#06131a', width=2)))
+            style_plotly(fig_sentiment)
             st.plotly_chart(fig_sentiment, use_container_width=True)
-            st.markdown('</div>', unsafe_allow_html=True)
-        
         with col2:
-            st.markdown('<div class="chart-card">', unsafe_allow_html=True)
             topic_counts = results_df['topic'].value_counts()
-            fig_topic = px.bar(topic_counts, x=topic_counts.index, y=topic_counts.values, title="Konu Dağılımı")
+            fig_topic = px.bar(topic_counts, x=topic_counts.index, y=topic_counts.values, color_discrete_sequence=['#52f2c8'])
+            fig_topic.update_layout(xaxis_title=None, yaxis_title=None)
+            style_plotly(fig_topic)
             st.plotly_chart(fig_topic, use_container_width=True)
-            st.markdown('</div>', unsafe_allow_html=True)
-        
+
         col3, col4 = st.columns(2)
         with col3:
-            st.markdown('<div class="chart-card">', unsafe_allow_html=True)
             risk_counts = results_df['risk_level'].value_counts()
-            fig_risk = px.bar(risk_counts, x=risk_counts.index, y=risk_counts.values, title="Risk Dağılımı")
+            fig_risk = px.bar(risk_counts, x=risk_counts.index, y=risk_counts.values, color_discrete_sequence=['#ff4fa3'])
+            fig_risk.update_layout(xaxis_title=None, yaxis_title=None)
+            style_plotly(fig_risk)
             st.plotly_chart(fig_risk, use_container_width=True)
-            st.markdown('</div>', unsafe_allow_html=True)
-        
         with col4:
             if 'date' in results_df.columns:
-                st.markdown('<div class="chart-card">', unsafe_allow_html=True)
-                results_df['date'] = pd.to_datetime(results_df['date'])
-                daily_sentiment = results_df.groupby(results_df['date'].dt.date)['sentiment'].value_counts().unstack().fillna(0)
-                fig_trend = px.line(daily_sentiment, title="Zaman İçinde Duygu Trendi")
-                st.plotly_chart(fig_trend, use_container_width=True)
-                st.markdown('</div>', unsafe_allow_html=True)
+                results_df['date'] = pd.to_datetime(results_df['date'], errors='coerce')
+                if results_df['date'].notna().any():
+                    daily_sentiment = results_df.groupby(results_df['date'].dt.date)['sentiment'].value_counts().unstack().fillna(0)
+                    fig_trend = px.line(daily_sentiment, labels={'value': 'Adet', 'date': 'Tarih'}, color_discrete_sequence=['#52f2c8', '#ff4fa3', '#7ee7ff'])
+                    style_plotly(fig_trend)
+                    st.plotly_chart(fig_trend, use_container_width=True)
+                else:
+                    st.info("Tarih sütunu geçerli değil veya boş.")
             else:
-                st.info("Tarih sütunu seçilmediği için zaman çizelgesi analizi mevcut değil")
-        
-        # Filters
-        st.markdown('<h3 class="section-title">🔍 Sonuçları Filtrele</h3>', unsafe_allow_html=True)
+                st.info("Tarih sütunu mevcut değil.")
+
+        st.markdown("### Sonuçları Filtrele")
         col1, col2, col3 = st.columns(3)
         with col1:
-            sentiment_filter = st.multiselect("Duyguya Göre Filtrele", options=results_df['sentiment'].unique(), default=results_df['sentiment'].unique())
+            sentiment_filter = st.multiselect("Duyguya Göre Filtrele", options=results_df['sentiment'].unique(), default=results_df['sentiment'].unique(), key='sentiment_filter')
         with col2:
-            topic_filter = st.multiselect("Konuya Göre Filtrele", options=results_df['topic'].unique(), default=results_df['topic'].unique())
+            topic_filter = st.multiselect("Konuya Göre Filtrele", options=results_df['topic'].unique(), default=results_df['topic'].unique(), key='topic_filter')
         with col3:
-            risk_filter = st.multiselect("Risk Seviyesine Göre Filtrele", options=results_df['risk_level'].unique(), default=results_df['risk_level'].unique())
-        
+            risk_filter = st.multiselect("Risk Seviyesine Göre Filtrele", options=results_df['risk_level'].unique(), default=results_df['risk_level'].unique(), key='risk_filter')
+
         filtered_df = results_df[
             (results_df['sentiment'].isin(sentiment_filter)) &
             (results_df['topic'].isin(topic_filter)) &
             (results_df['risk_level'].isin(risk_filter))
         ]
-        
-        # Detailed Table
-        st.markdown('<h3 class="section-title">📋 Detaylı Sonuçlar</h3>', unsafe_allow_html=True)
-        
-        # Create table with badges
-        table_data = []
-        for _, row in filtered_df.head(50).iterrows():
-            table_data.append({
-                'ID': row['review_id'],
-                'Yorum Metni': row['review_text'][:100] + "..." if len(row['review_text']) > 100 else row['review_text'],
-                'Duygu': create_sentiment_badge(row['sentiment']),
-                'Konu': row['topic'].replace('_', ' ').title(),
-                'Risk Seviyesi': create_risk_badge(row['risk_level']),
-                'Açıklama': row['explanation']
-            })
-        
-        table_df = pd.DataFrame(table_data)
-        st.markdown(table_df.to_html(escape=False, index=False), unsafe_allow_html=True)
-        
-        # Top Risky Reviews
-        st.markdown('<h3 class="section-title">⚠️ En Riskli Yorumlar</h3>', unsafe_allow_html=True)
+
+        st.markdown("### Detaylı Sonuçlar")
+        st.markdown(render_data_table(filtered_df.head(50)), unsafe_allow_html=True)
+
+        st.markdown("### Yüksek Riskli Yorumlar")
         top_risky = filtered_df[filtered_df['risk_level'].isin(['high', 'critical'])].sort_values('risk_score', ascending=False).head(10)
-        
         if not top_risky.empty:
-            risky_data = []
-            for _, row in top_risky.iterrows():
-                risky_data.append({
-                    'ID': row['review_id'],
-                    'Yorum Metni': row['review_text'][:150] + "..." if len(row['review_text']) > 150 else row['review_text'],
-                    'Duygu': create_sentiment_badge(row['sentiment']),
-                    'Konu': row['topic'].replace('_', ' ').title(),
-                    'Risk Seviyesi': create_risk_badge(row['risk_level']),
-                    'Risk Skoru': f"{row['risk_score']:.2f}"
-                })
-            
-            risky_df = pd.DataFrame(risky_data)
-            st.markdown(risky_df.to_html(escape=False, index=False), unsafe_allow_html=True)
+            st.markdown(render_data_table(top_risky), unsafe_allow_html=True)
         else:
-            st.info("Filtrelenmiş sonuçlarda yüksek riskli yorum bulunamadı")
-        
-        # Downloads
-        st.markdown('<h3 class="section-title">💾 Sonuçları İndir</h3>', unsafe_allow_html=True)
-        
-        st.markdown('<div class="download-card">', unsafe_allow_html=True)
-        col1, col2 = st.columns(2)
+            st.info("Filtrelenmiş sonuçlarda yüksek riskli yorum bulunamadı.")
+
+        st.markdown(
+            """
+            <div class='download-panel'>
+                <h3 class='download-title'>Sonuçları İndirin</h3>
+                <p class='download-description'>Analiz edilmiş verilerinizi CSV veya PDF formatında dışa aktarın.</p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        col1, col2 = st.columns([1, 1])
         with col1:
-            csv = filtered_df.to_csv(index=False)
-            st.download_button("📄 Analiz Edilmiş CSV'yi İndir", csv, "analysis_results.csv", "text/csv", use_container_width=True)
-        
+            csv_bytes = filtered_df.to_csv(index=False).encode('utf-8')
+            st.download_button("📄 CSV Olarak İndir", csv_bytes, "analysis_results.csv", "text/csv", key='csv_download_results')
         with col2:
             pdf_buffer = generate_pdf_report(filtered_df)
-            st.download_button("📊 PDF Raporu İndir", pdf_buffer, "analysis_report.pdf", "application/pdf", use_container_width=True)
-        st.markdown('</div>', unsafe_allow_html=True)
+            st.download_button("📊 PDF Raporu İndir", pdf_buffer, "analysis_report.pdf", "application/pdf", key='pdf_download_results')
+
 
 if __name__ == "__main__":
     main()

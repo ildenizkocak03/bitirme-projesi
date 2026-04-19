@@ -83,7 +83,11 @@ def generate_pdf_report(results_df: pd.DataFrame) -> BytesIO:
         pdf.cell(0, 10, '- Implement customer satisfaction improvement program', 0, 1)
     
     # Convert to BytesIO
-    pdf_bytes = pdf.output(dest="S").encode("latin-1")
+    pdf_output = pdf.output(dest="S")
+    if isinstance(pdf_output, bytearray):
+        pdf_bytes = pdf_output
+    else:
+        pdf_bytes = pdf_output.encode("latin-1")
     buffer = BytesIO(pdf_bytes)
     buffer.seek(0)
     

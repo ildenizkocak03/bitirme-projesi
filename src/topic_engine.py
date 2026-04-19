@@ -4,7 +4,7 @@ import numpy as np
 
 class TopicEngine:
     def __init__(self):
-        self.model = SentenceTransformer('all-MiniLM-L6-v2')
+        self.model = SentenceTransformer('all-MiniLM-L6-v2', device='cpu')
         
         # Predefined topics with example phrases
         self.topics = {
